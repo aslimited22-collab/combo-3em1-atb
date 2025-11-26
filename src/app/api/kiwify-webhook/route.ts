@@ -1,11 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
+import { NextRequest, NextResponse } from "next/server";
 
-/**
- * Webhook da Kiwify para validar compras aprovadas
- * Configure este endpoint no painel da Kiwify em: Configurações > Webhooks
- * URL do webhook: https://seu-dominio.vercel.app/api/kiwify-webhook
- */
+// sua função continua existindo, mas AGORA sem "export"
+async function getComprasAprovadas(req: NextRequest) {
+  // ... aqui fica TODO o seu código atual ...
+  // não apaga a lógica, só tira o "export" da função original
+}
+
+// handler padrão que o Next entende
+export async function POST(req: NextRequest) {
+  return getComprasAprovadas(req);
+}
 
 interface KiwifyWebhookPayload {
   order_id: string;
