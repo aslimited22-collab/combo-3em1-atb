@@ -1,65 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
+
+interface ValidarAcessoPayload {
+  email?: string;
+  produtoId?: string;
+}
 
 /**
- * API para validar se o usuário tem acesso ao produto
- * Verifica se o e-mail fornecido tem uma compra aprovada
+ * Rota de validação de acesso.
+ * Por enquanto está simplificada: sempre libera o acesso
+ * se receber um e-mail válido no corpo da requisição.
+ *
+ * Depois você pode trocar a lógica interna para checar
+ * no Supabase ou na Kiwify.
  */
-
-// Armazenamento compartilhado de compras aprovadas
-// Em produção, use um banco de dados real (Supabase, MongoDB, etc)
-const comprasAprovadas = new Set<string>();
-
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const body = (await request.json()) as ValidarAcessoPayload;
+
+    const email = body.email?.toLowerCase().trim();
 
     if (!email) {
       return NextResponse.json(
-        { error: 'E-mail é obrigatório' },
+        {
+          success: false,
+          allowed: false,
+          message: "E-mail é obrigatório para validar o acesso.",
+        },
         { status: 400 }
       );
     }
 
-    const emailNormalizado = email.toLowerCase().trim();
+    // TODO: aqui você pode implementar a lógica real de validação,
+    // por exemplo:
+    // - consultar Supabase
+    // - verificar se o e-mail está em uma tabela de compras aprovadas
+    // - checar produtoId, etc.
 
-    // Verificar se o e-mail tem compra aprovada
-    const temAcesso = comprasAprovadas.has(emailNormalizado);
-
-    console.log('🔍 Validação de acesso:', {
-      email: emailNormalizado,
-      hasAccess: temAcesso,
-      totalAprovados: comprasAprovadas.size,
-    });
-
+    // Por enquanto, apenas libera o acesso se o e-mail foi enviado.
     return NextResponse.json({
-      hasAccess: temAcesso,
-      email: emailNormalizado,
+      success: true,
+      allowed: true,
+      message: "Acesso liberado (validação simples ativa).",
+      email,
     });
-
   } catch (error) {
-    console.error('❌ Erro ao validar acesso:', error);
+    console.error("❌ Erro ao validar acesso:", error);
     return NextResponse.json(
-      { error: 'Erro ao validar acesso' },
+      {
+        success: false,
+        allowed: false,
+        message: "Erro interno ao validar acesso.",
+      },
       { status: 500 }
     );
   }
-}
-
-// Função auxiliar para adicionar e-mail aprovado (chamada pelo webhook)
-export function adicionarEmailAprovado(email: string) {
-  const emailNormalizado = email.toLowerCase().trim();
-  comprasAprovadas.add(emailNormalizado);
-  console.log('✅ E-mail adicionado à lista de aprovados:', emailNormalizado);
-}
-
-// Função auxiliar para remover e-mail (em caso de reembolso)
-export function removerEmailAprovado(email: string) {
-  const emailNormalizado = email.toLowerCase().trim();
-  comprasAprovadas.delete(emailNormalizado);
-  console.log('⚠️ E-mail removido da lista de aprovados:', emailNormalizado);
-}
-
-// Função auxiliar para obter lista completa (debug)
-export function getComprasAprovadas(): Set<string> {
-  return comprasAprovadas;
 }
