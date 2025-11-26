@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-// sua função continua existindo, mas AGORA sem "export"
-async function getComprasAprovadas(req: NextRequest) {
-  // ... aqui fica TODO o seu código atual ...
-  // não apaga a lógica, só tira o "export" da função original
-}
-
-// handler padrão que o Next entende
-export async function POST(req: NextRequest) {
-  return getComprasAprovadas(req);
-}
+import crypto from "crypto";
 
 interface KiwifyWebhookPayload {
   order_id: string;
@@ -26,29 +16,29 @@ const comprasAprovadas = new Set<string>();
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json() as KiwifyWebhookPayload;
-    
+    const body = (await request.json()) as KiwifyWebhookPayload;
+
     // Validar assinatura do webhook (segurança)
-    const signature = request.headers.get('x-kiwify-signature');
+    const signature = request.headers.get("x-kiwify-signature");
     const webhookSecret = process.env.KIWIFY_WEBHOOK_SECRET;
-    
+
     if (webhookSecret && signature) {
       const expectedSignature = crypto
-        .createHmac('sha256', webhookSecret)
+        .createHmac("sha256", webhookSecret)
         .update(JSON.stringify(body))
-        .digest('hex');
-      
+        .digest("hex");
+
       if (signature !== expectedSignature) {
-        console.error('❌ Assinatura inválida do webhook Kiwify');
+        console.error("❌ Assinatura inválida do webhook Kiwify");
         return NextResponse.json(
-          { error: 'Assinatura inválida' },
+          { error: "Assinatura inválida" },
           { status: 401 }
         );
       }
     }
 
     // Log do evento recebido
-    console.log('📩 Webhook Kiwify recebido:', {
+    console.log("📩 Webhook Kiwify recebido:", {
       order_id: body.order_id,
       status: body.order_status,
       email: body.customer_email,
@@ -56,62 +46,54 @@ export async function POST(request: NextRequest) {
     });
 
     // Processar apenas compras aprovadas
-    if (body.order_status === 'paid' || body.order_status === 'approved') {
+    if (body.order_status === "paid" || body.order_status === "approved") {
       const email = body.customer_email.toLowerCase();
-      
+
       // Adicionar e-mail à lista de aprovados
       comprasAprovadas.add(email);
-      
-      console.log('✅ Compra aprovada e acesso liberado:', email);
-      console.log('📊 Total de compras aprovadas:', comprasAprovadas.size);
-      
+
+      console.log("✅ Compra aprovada e acesso liberado:", email);
+      console.log("📊 Total de compras aprovadas:", comprasAprovadas.size);
+
       // Aqui você pode expandir para:
-      // 1. Salvar em banco de dados (Supabase, MongoDB, etc)
-      // 2. Enviar e-mail de boas-vindas com instruções
-      // 3. Criar sessão temporária
-      // 4. Integrar com sistema de membros
-      // 5. Notificar equipe de vendas
-      
+      // 1. Salvar em banco de dados (Supabase, etc.)
+      // 2. Enviar e-mail de boas-vindas
+      // 3. Integrar com sistema de membros, etc.
+
       return NextResponse.json({
         success: true,
-        message: 'Compra processada e acesso liberado com sucesso',
+        message: "Compra processada e acesso liberado com sucesso",
         order_id: body.order_id,
-        email: email,
+        email,
       });
     }
 
     // Processar reembolsos/cancelamentos
-    if (body.order_status === 'refunded' || body.order_status === 'cancelled') {
+    if (body.order_status === "refunded" || body.order_status === "cancelled") {
       const email = body.customer_email.toLowerCase();
       comprasAprovadas.delete(email);
-      
-      console.log('⚠️ Acesso removido (reembolso/cancelamento):', email);
-      
+
+      console.log("⚠️ Acesso removido (reembolso/cancelamento):", email);
+
       return NextResponse.json({
         success: true,
-        message: 'Acesso removido',
+        message: "Acesso removido",
         order_id: body.order_id,
       });
     }
 
     // Outros status (pendente, etc)
-    console.log('ℹ️ Status recebido:', body.order_status);
+    console.log("ℹ️ Status recebido:", body.order_status);
     return NextResponse.json({
       success: true,
-      message: 'Webhook recebido',
+      message: "Webhook recebido",
       status: body.order_status,
     });
-
   } catch (error) {
-    console.error('❌ Erro ao processar webhook Kiwify:', error);
+    console.error("❌ Erro ao processar webhook Kiwify:", error);
     return NextResponse.json(
-      { error: 'Erro ao processar webhook' },
+      { error: "Erro ao processar webhook" },
       { status: 500 }
     );
   }
-}
-
-// Função auxiliar para obter lista de e-mails aprovados
-export function getComprasAprovadas(): Set<string> {
-  return comprasAprovadas;
 }
