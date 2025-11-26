@@ -40,8 +40,7 @@ export default function ProdutoPage() {
         },
         body: JSON.stringify({ 
           nome, 
-          data, 
-          email: 'teste@desenvolvimento.com' 
+          data
         }),
       });
 
